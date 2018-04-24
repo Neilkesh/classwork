@@ -1,0 +1,176 @@
+---
+title: "Understanding Happiness"
+author: "Neilkesh & Saheli"
+date: "28 December 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Reading the Data
+```{r}
+happy_train = read.csv("C://Users//Administrator//Documents//Datasets//happiness//Happy_train.csv")
+happy_test = read.csv("C://Users//Administrator//Documents//Datasets//happiness//Happy_test.csv")
+library(tree)
+library(plyr)
+library('e1071')
+```
+
+#Structure
+```{r}
+str(happy_train)
+```
+#Data Availability
+```{r}
+colSums(!is.na(happy_train))*100/nrow(happy_train)
+```
+
+
+#Cleaning the dataset
+```{r message=FALSE, warning=FALSE}
+happy_train =happy_train[,-c(1,13,19,22,37)]
+happy_test =happy_test[,-c(1,13,19,22,37)]
+#replacing income factors by numbers
+happy_train$income = revalue(happy_train$income, c("lt $1000"= 1, "$1000 to 2999"=2,"$3000 to 3999"= 3,"$4000 to 4999"= 4,"$5000 to 5999"= 5,"$6000 to 6999"= 6,"$7000 to 7999"= 7,"$8000 to 9999"= 8,"$10000 - 14999"= 9,"$15000 - 19999"= 10,"$20000 - 24999"= 11,"$25000 or more"= 12))
+#happy_train$divorce = revalue(happy_train$divorce, c("no"= 0, "s"=1,"yes"=1))
+#happy_train$owngun = revalue(happy_train$owngun, c("iap"= 0,"yes"=1))
+#Data Imputation
+happy_train$tvhours[is.na(happy_train$tvhours)] = round(mean(happy_train$tvhours,na.rm = TRUE))
+happy_train$prestige[is.na(happy_train$prestige)] = round(mean(happy_train$prestige,na.rm = TRUE))
+happy_train$educ[is.na(happy_train$educ)] = round(mean(happy_train$educ,na.rm = TRUE))
+happy_train$babies[is.na(happy_train$babies)] = round(mean(happy_train$babies,na.rm = TRUE))
+happy_train$preteen[is.na(happy_train$preteen)] = round(mean(happy_train$preteen,na.rm = TRUE))
+happy_train$teens[is.na(happy_train$teens)] = round(mean(happy_train$teens,na.rm = TRUE))
+happy_train$mothfath16[is.na(happy_train$mothfath16)] = round(mean(happy_train$mothfath16,na.rm = TRUE))
+happy_train$income[is.na(happy_train$income)] = round(mean(happy_train$income,na.rm = TRUE))
+
+
+```
+
+#Transformation of datatypes 
+```{r}
+happy_train = transform(happy_train,income = as.integer(income))
+
+#happy_train = transform(happy_train,gwbush04 = as.factor(gwbush04))
+#happy_train = transform(happy_train,gwbush00 = as.factor(gwbush00))
+happy_train = transform(happy_train,female = as.factor(female))
+happy_train = transform(happy_train,blackfemale = as.factor(blackfemale))
+happy_train = transform(happy_train,black = as.factor(black))
+happy_train = transform(happy_train,divorce = as.factor(divorce))
+happy_train = transform(happy_train,owngun = as.factor(owngun))
+```
+
+#Samples
+```{r}
+sample_items = sample.int(n=nrow(happy_train),size = floor(0.7 *nrow(happy_train)),replace = F)
+#test and train 
+tree_data_train = happy_train[sample_items,]
+tree_data_test = happy_train[-sample_items,]
+```
+
+#NaiveBayes
+```{r}
+model=naiveBayes(happy~.,data=tree_data_train)
+model
+
+pred.df=predict(model,tree_data_test[,-33],type="class")
+
+Happy_pred.prob=data.frame(tree_data_test$happy,pred.df)
+
+confmat=table(pred.df,tree_data_test$happy)
+accuracy=sum(diag(confmat))/sum(confmat)
+accuracy
+```
+
+#Test Data set
+```{r}
+happy_test =happy_test[,-c(1,13,19,22,37)]
+happy_test =happy_test[,-c(1,13,19,22,37)]
+happy_test$income = revalue(happy_test$income, c("lt $1000"= 1, "$1000 to 2999"=2,"$3000 to 3999"= 3,"$4000 to 4999"= 4,"$5000 to 5999"= 5,"$6000 to 6999"= 6,"$7000 to 7999"= 7,"$8000 to 9999"= 8,"$10000 - 14999"= 9,"$15000 - 19999"= 10,"$20000 - 24999"= 11,"$25000 or more"= 12))
+happy_test = transform(happy_test,income = as.integer(income))
+happy_test = transform(happy_test,female = as.factor(female))
+happy_test = transform(happy_test,blackfemale = as.factor(blackfemale))
+happy_test = transform(happy_test,black = as.factor(black))
+happy_test = transform(happy_test,divorce = as.factor(divorce))
+happy_test = transform(happy_test,owngun = as.factor(owngun))
+```
+
+
+```{r}
+
+model2=naiveBayes(happy~.,data=happy_train)
+pred.df2=predict(model2,happy_test,type="class")
+write.csv(pred.df2,"happy2.csv")
+```
+
+##Decison Trees
+```{r}
+happy_train = read.csv("C://Users//Administrator//Documents//Datasets//happiness//Happy_train.csv")
+happy_test = read.csv("C://Users//Administrator//Documents//Datasets//happiness//Happy_test.csv")
+```
+
+#Cleaning the dataset
+```{r message=FALSE, warning=FALSE}
+happy_train =happy_train[,-c(1,2,7,12,13,16)]
+#replacing income factors by numbers
+happy_train$income = revalue(happy_train$income, c("lt $1000"= 1, "$1000 to 2999"=2,"$3000 to 3999"= 3,"$4000 to 4999"= 4,"$5000 to 5999"= 5,"$6000 to 6999"= 6,"$7000 to 7999"= 7,"$8000 to 9999"= 8,"$10000 - 14999"= 9,"$15000 - 19999"= 10,"$20000 - 24999"= 11,"$25000 or more"= 12))
+happy_train$divorce = revalue(happy_train$divorce, c("no"= 0, "s"=1,"yes"=1))
+happy_train$owngun = revalue(happy_train$owngun, c("iap"= 0,"yes"=1))
+happy_train$widowed = revalue(happy_train$widowed, c("iap"= 0,"yes"=1))
+
+#Data Imputation
+happy_train$tvhours[is.na(happy_train$tvhours)] = round(mean(happy_train$tvhours,na.rm = TRUE))
+happy_train$prestige[is.na(happy_train$prestige)] = round(mean(happy_train$prestige,na.rm = TRUE))
+happy_train$educ[is.na(happy_train$educ)] = round(mean(happy_train$educ,na.rm = TRUE))
+happy_train$babies[is.na(happy_train$babies)] = round(mean(happy_train$babies,na.rm = TRUE))
+happy_train$preteen[is.na(happy_train$preteen)] = round(mean(happy_train$preteen,na.rm = TRUE))
+happy_train$teens[is.na(happy_train$teens)] = round(mean(happy_train$teens,na.rm = TRUE))
+happy_train$mothfath16[is.na(happy_train$mothfath16)] = round(mean(happy_train$mothfath16,na.rm = TRUE))
+```
+
+
+#Transformation of datatypes 
+```{r}
+happy_train = transform(happy_train,income = as.integer(income))
+happy_train$income[is.na(happy_train$income)] = round(mean(happy_train$income,na.rm = TRUE))
+
+happy_train = transform(happy_train,female = as.factor(female))
+happy_train = transform(happy_train,blackfemale = as.factor(blackfemale))
+happy_train = transform(happy_train,black = as.factor(black))
+happy_train = transform(happy_train,divorce = as.factor(divorce))
+happy_train = transform(happy_train,owngun = as.factor(owngun))
+
+```
+
+#Samples
+```{r}
+sample_items = sample.int(n=nrow(happy_train),size = floor(0.7 *nrow(happy_train)),replace = F)
+#test and train 
+tree_data_train = happy_train[sample_items,]
+tree_data_test = happy_train[-sample_items,]
+```
+
+#tree(train)
+```{r}
+tree.model.train= tree(happy~.,data = happy_train)
+tree.model.train
+summary(tree.model.train)
+plot(tree.model.train)
+text(tree.model.train)
+model_prediction = predict(tree.model.train,tree_data_test)
+model_prediction
+
+maxidx = function(arr){
+  return(which(arr==max(arr)))}
+
+idx = apply(model_prediction,c(1),maxidx)
+
+modelprediction=c("No",'Yes')[idx]
+
+confmat = table(modelprediction,tree_data_test$happy)
+accuracy = sum(diag(confmat))/sum(confmat)
+accuracy
+```
+
