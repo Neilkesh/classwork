@@ -1,0 +1,84 @@
+---
+title: "IPL"
+author: "Neilkesh Byrav"
+date: "14 March 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(wordcloud)
+library(zoo)
+library(scales)
+```
+
+#Reading the files
+```{r}
+ipl = read.csv("C://Users//Administrator//Documents//Datasets//IPL//datasets//train//ball_by_ball_data.csv")
+team_key  = read.csv("C://Users//Administrator//Documents//Datasets//IPL//datasets//train//key_teams.csv")
+match_data  = read.csv("C://Users//Administrator//Documents//Datasets//IPL//datasets//train//match_data.csv")
+player_rosters  = read.csv("C://Users//Administrator//Documents//Datasets//IPL//datasets//train//player_rosters.csv")
+colnames(ipl)
+```
+
+#New columns
+##Convertoing to date format
+
+```{r, message=FALSE, warning=FALSE}
+match_data$date_formated = as.Date(match_data$date,format='%d-%m-%Y')
+match_data$year =format(match_data$date_formated, '%Y')
+match_data$month = format(match_data$date_formated, '%m')
+match_data$month_text = format(match_data$date_formated, '%B')
+match_data$day = format(match_data$date_formated, '%d')
+match_data$weekday = format(match_data$date_formated, '%A')
+```
+
+```{r}
+ipl = ipl %>% mutate(Batsman_runs_count = if_else(batsman_runs == 0, 0, 1))
+ipl$total_runs = ipl$batsman_runs + ipl$extra_runs
+ipl = ipl %>% mutate(Total_runs_count = if_else(total_runs == 0, 0, 1))
+ipl = ipl %>% mutate(Sixes = if_else(batsman_runs == 6, 1, 0))
+ipl = ipl %>% mutate(Fours = if_else(batsman_runs == 4, 1, 0))
+ipl = ipl %>% mutate(Wickets = if_else(dismissal_kind == '', 0, 1))
+```
+
+#Team stats
+```{r}
+#Number of matches
+Team_matches = ipl %>% group_by(match_id,inning) %>% summarise(Teams = unique(batting_team))
+Team_matches$Count = 1
+Team_matches = Team_matches %>% group_by(Teams) %>% summarise(Matches =sum(Count)) 
+
+Teams_best1 = ipl %>% group_by(batting_team) %>% summarise(Runs = sum(total_runs),Sixes = sum(Sixes),Fours = sum(Fours),Strike_rate = sum(total_runs)/n()*100,Bat_avg = sum(total_runs)/sum(Wickets))
+Teams_best2 = ipl %>% group_by(bowling_team) %>% summarise(Wick = sum(Wickets),Bowl_avg = sum(total_runs)/sum(Wickets))
+Teams_best = cbind(Teams_best1,Teams_best2)
+Teams_best = cbind(Teams_best,Team_matches)
+rm(Teams_best1,Teams_best2)
+Teams_best$Boundaries = Teams_best$Fours + Teams_best$Sixes
+Teams_best = Teams_best[,c(1,11,2,8,6,9,5,4,3)] %>% arrange(-Matches)
+```
+
+#Runs per over
+##Runrate after the powerplay reduces by a huge margin
+```{r}
+runs2 = ipl %>% group_by(over) %>% summarise(Total_runs = sum(batsman_runs),Overs = n()/6)
+runs2$runs.per.over = runs2$Total_runs/runs2$Overs
+runs2 = runs2 %>% arrange(runs.per.over)
+runs2$over = as.factor(runs2$over)
+ggplot(runs2,aes(x=over,y=runs.per.over)) + geom_bar(stat = 'identity',fill = 'red') 
+```
+
+#Percentage Extra runs per each ball
+```{r}
+extra = ipl %>% group_by(ball) %>% summarise(Total_extras = sum(extra_runs),N.balls = n())
+extra$extra.per.ball = (extra$Total_extras/extra$N.balls)
+ggplot(extra,aes(x=ball,y=extra.per.ball)) + geom_bar(stat = 'identity') + scale_x_continuous(breaks= pretty_breaks())
+```
+
